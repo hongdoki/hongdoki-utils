@@ -34,7 +34,7 @@ def main(flags):
     for i, expid in enumerate(expids):
         event_acc = EventAccumulator(os.path.join(flags.exps_dir, expid, 'eval'))
         event_acc.Reload()
-        expid_scalar_dict[expid] = [event_acc.Scalars(scalar)[0].value for scalar in flags.scalars]
+        expid_scalar_dict[expid] = [event_acc.Scalars(scalar)[-1].value for scalar in flags.scalars]
         print '\rreading event files... %d/%d done.' % (i + 1, len(expids)),
 
     # load hyper parameters
@@ -48,12 +48,12 @@ def main(flags):
         hpar_default.pop(name)
     # hpar_default.pop('visit_weight')
 
-    results = pd.DataFrame(columns=[name for name in flags.target_hps] + flags.scalars)
+    results = pd.DataFrame(columns=[flags.expid_name] + [name for name in flags.target_hps] + flags.scalars)
 
     # check difference except target hpar
     for i, expid in enumerate(expid_scalar_dict.keys()):
         hpar = hp.search(where(flags.expid_name).test(contain_fn(expid)))[0]
-        results.loc[i] = [hpar.pop(name) for name in flags.target_hps] + expid_scalar_dict[expid]
+        results.loc[i] = [expid] + [hpar.pop(name) for name in flags.target_hps] + expid_scalar_dict[expid]
         hpar.pop(flags.expid_name)
         if not hpar_default == hpar:
             print expid
@@ -104,7 +104,7 @@ if __name__ == '__main__':
         '--scalars',
         '--scalars',
         nargs='+',
-        default=['AUC_validation','AUC_test'],
+        default=['AUC_val', 'AUC_test'],
         help='list of names for scalars in TF event file to be used as target value(y)'
     )
 
@@ -119,7 +119,7 @@ if __name__ == '__main__':
         '--target_hps',
         '--target_hps',
         nargs='+',
-        default=['emb_size'],
+        default=['l2_reg_scale'],
         help='list of names for target hyper-parmeters'
     )
 
